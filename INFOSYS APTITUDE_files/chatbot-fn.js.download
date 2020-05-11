@@ -1,0 +1,572 @@
+(function() {
+    'use strict';
+    var payload;
+    var utmSource = "";
+    var urlParams = new URLSearchParams(window.location.search);
+    var redirectLink = urlParams.get("redirectLink");
+    var conversation = urlParams.get("conversation");
+    var src_tmp = urlParams.get("src_tmp");
+    var name = urlParams.get("context.name");
+    var email = urlParams.get("context.email");
+    var phone = urlParams.get("context.phone");
+    var domain = urlParams.get("domain");
+    if (!domain){
+        domain = "Naukri";
+    }
+    utmSource = urlParams.get("utm_source");
+    if (!utmSource){
+        utmSource = urlParams.get("utmsource");
+    }
+    if(!src_tmp){
+        src_tmp = "";
+    }
+    payload = {
+        "redirectLink": redirectLink,
+        "context": {},
+        "appName": conversation,
+        "domain": domain,
+        "utmSource": utmSource,
+        "name": name,
+        "email": email,
+        "phone": phone,
+        "src_tmp": src_tmp,
+        "channel" : "web"
+    }
+    var states = {
+	    appName : conversation,
+            percent1: '',
+            percent2: '',
+            percent3: '',
+            percent4: '',
+            lastmessage: '',
+            name: '',
+            msgs: [{
+                name: "Naukri",
+                text: "Loading...",
+                type: "received",
+                avtar: "https://"+baseUrl+"/static/chat/images/fn.png",
+                entity: ""
+            }],
+            cvFile: '',
+            photoFile: '',
+            dropdown: [],
+            popupOpened: false,
+            photoPopupOpened: false,
+            photoFileName: '',
+            photoCoordinates:'',
+            cropper: '',
+            inputType: {
+                "type": "text"
+            },
+            options: [],
+            keyskills: [],
+            autosuggest: [],
+            message: "",
+            isReplying: false,
+            headerMsg: "Naukri is Typing",
+            placeHolder: "Type here…"
+        };
+
+
+
+
+    /**
+     * Initializes all Vue templates
+     */
+    function initVue(urlParams) {
+        // Tell Vue that we want to use Framework7-Vue plugin
+        if (urlParams) {
+            for (var key in urlParams) {
+                payload.context[key] = urlParams[key]
+            }
+        }
+        Vue.use(Framework7Vue);
+        if (states.lastMessage && states.lastMessage.avtar) {
+            states.lastMessage.avtar = '';
+        }
+        var respondWithText = function(bot_say, a) {
+            var details = localStorage.getItem("chatbot");
+            if(details == null){
+                var details = {};
+                }
+            else{
+                details = JSON.parse(details);
+            }
+            for (var key in payload["extractedParameters"]) {
+                if (payload["extractedParameters"].hasOwnProperty(key)) {
+                   if(key!="password"){
+                    details[key] = payload["extractedParameters"][key];
+                }
+            }
+            }
+            localStorage.setItem('chatbot', JSON.stringify(details));
+            var response = payload["speechResponse"];
+            var options = bot_say["options"];
+            states.dropdown = options;
+            if (options && options[0] && states.inputType.type != "autosuggest-multi" &&
+                payload.context.currentNodeName != "Location") {
+                for (var i = 0; i < 5 && options[i]; i++) {
+                    states.options.push(options[i]);
+                }
+                if (options.length == 6) {
+                    states.options.push(options[i]);
+                } else if (options.length > 5) {
+                    states.options.push({
+                        "value": "More",
+                        "name": "More",
+                        "type": "more"
+                    })
+                }
+            } else {
+                for (var i = 0; i < 20 && options[i]; i++) {
+                    states.keyskills.push(options[i]);
+                }
+                if (options.length > 20) {
+                    states.keyskills.push({
+                        "value": "More",
+                        "name": "More",
+                        "type": "more"
+                    })
+                }
+            }
+        }
+        var getCookie = function(name) {
+            var match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+            if (match) return match[2];
+        }
+        var initSuccess = function(response) {
+            states.msgs.pop();
+            success(response, true);
+        }
+        var success = function(response, isInit) {
+            states.isReplying = false;
+            var data = response.data;
+            if ("currentApp" in data) {
+                conversation = data.currentApp;
+            }
+            if (typeof data == 'object') {
+                payload = data;
+            } else {
+                var parsedResponse = JSON.parse(data);
+                payload = parsedResponse.responseData;
+            }
+            if(conversation=="app_1" && payload.context.currentNodeName=="Fresher or Exp"){
+                ub.track("niResmanSubmit", {
+                        actionType: "click",
+                        sectionName:"PZero",
+                        status:"Success",
+                        resdexReady:false,
+                        pageIndex: 1,
+                        uniqueDid: getCookie("_t_ds")
+                    });
+            }
+            if (payload.context.currentNodeName == "INIT") {
+                localStorage.clear();
+            }
+            if(payload.context.percent==0)
+            {
+                states["percent1"] = "";
+                states["percent2"] = "";
+                states["percent3"] = "";
+                states["percent4"] = "";
+            }
+            else{
+                if (payload.context.percent1) {
+                    states["percent1"] = payload.context.percent1;
+                }
+                if (payload.context.percent2) {
+                    states["percent2"] = payload.context.percent2;
+                }
+                if (payload.context.percent3) {
+                    states["percent3"] = payload.context.percent3;
+                }
+                if (payload.context.percent4) {
+                    states["percent4"] = payload.context.percent4;
+                }
+            }
+            response = payload["speechResponse"]
+            if (payload.input && payload.input.type) {
+                states.inputType = payload.input;
+            } else {
+                states.inputType = {};
+            }
+            if (states.inputType.placeholder) {
+                states.placeHolder = states.inputType.placeholder;
+            } else {
+                states.placeHolder = "Type here…";
+            }
+            if (states.currentNode &&
+                states.currentNode == payload.context.currentNodeName) {
+                gtag('event',
+                    "Re " + payload.context.currentNodeName,
+                    {'event_category': conversation}
+                );
+            } else if (states.currentNode) {
+                gtag('event',
+                    "Pass " + states.currentNode,
+                    {'event_category': conversation}
+                );
+            }
+
+            states.currentNode = payload.context.currentNodeName;
+            var allowedNodes = ["name","phone","email"];
+            var isEditable = payload.isEditable;
+            for (var key in response) {
+                states.msgs.push({
+                    name: "Naukri",
+                    text: response[key],
+                    type: "received",
+                    avtar: "https://"+baseUrl+"/static/chat/images/fn.png"
+                });
+                if (key == response.length - 1) {
+                    respondWithText(payload, false);
+                }
+            }
+            if (isEditable) {
+                states.lastMessage.avtar = "https://"+baseUrl+"/static/chat/images/pencil.png";
+                for (var key in payload["extractedParameters"]){
+                    states.lastMessage.entity = key;
+                }
+            }
+        };
+        var error = function() {
+            states.isReplying = false;
+        }
+
+
+
+        // Init Vue
+        var app = new Vue({
+            el: '#app',
+            delimiters: ['[[', ']]'],
+            data: function() {
+                return states;
+            },
+            time: null,
+            methods: {
+                readTar: function(e) {
+                    var file = e.target.files;
+                    states.cvFile = file[0];
+                    this.submitFile();
+                },
+                readPhotoFile: function(e) {
+                      states.photoFileName = e.target.files[0].name;
+                      states.photoFile = e.target.files[0];
+                      if (e.target.files.length) {
+                            // start file reader
+                        const reader = new FileReader();
+                        reader.onload = (e)=> {
+                          if(e.target.result){
+                                    // create new image
+                                    let img = document.createElement('img');
+                                    img.id = 'image';
+                                    img.src = e.target.result;
+                                    let resImg = document.querySelector('.result');
+                                    // clean result before
+                                    resImg.innerHTML = '';
+                                    // append new image
+                                    resImg.appendChild(img);
+                                    // show save btn and options
+                                    let save = document.querySelector('.save');
+                                    save.classList.remove('hide');
+                                    let options = document.querySelector('.options');
+                                    options.classList.remove('hide');
+                                    // init cropper
+                                    states.cropper = new Cropper(img,{aspectRatio:1});
+
+                          }
+                        };
+                        reader.readAsDataURL(e.target.files[0]);
+                      }
+                },
+                backHandler: function(event) {
+                    if (states.popupOpened) {
+                        states.popupOpened = false;
+                    }
+                    if (states.photoPopupOpened) {
+                        states.photoPopupOpened = false;
+                    }
+                },
+ 		onFormClick: function() {
+                    ub.track("niResmanChatBotSubmit", {
+                        actionType: "click",
+                        sectionName: "registrationForm",
+                        pageIndex: 1,
+                        chatId: getCookie("_t_ds"),
+			uniqueDid: getCookie("_t_ds")
+                    });
+                    window.location.href = "https://www.naukri.com/registration/createAccount?othersrcp=19101&wExp=N";
+                },
+                onOptionClicked: function(option) {
+                    if (states.dropdown.length <= 3) {
+                        gtag('event',
+                            "Pass " + states.currentNode + " " + option.name,
+                            {'event_category': conversation}
+                        );
+                    }
+                    if (option.type == "more") {
+                        states.popupOpened = true;
+                        history.pushState(null, "page", "#dropdown");
+                    } else if (option.type == "link") {
+                        window.open(option.value, '_blank');
+                    } else if (option.type == "multiselect") {
+                        if (states.message.indexOf(" " + option.value + ",") == -1) {
+                            if (option.count != "") {
+                                if ((states.message + " " + option.value + ",").length <= 250 && states.message.split(",").length != parseInt(option.count) + 1) {
+                                    states.message = states.message + " " + option.value + ",";
+                                    option.isActive = true;
+                                }
+                            } else if ((states.message + " " + option.value + ",").length <= 250) {
+                                states.message = states.message + " " + option.value + ",";
+                                option.isActive = true;
+                            }
+                        } else {
+                            states.message = states.message.replace(" " + option.value + ",", "");
+                            option.isActive = false;
+                        }
+
+                    } else if (option.type == "upload") {
+                        this.onUploadButtonClicked();
+                    } else if (option.type == "photoUpload") {
+                        this.onPhotoUploadButtonClicked();
+                    } else {
+                        states.popupOpened = false;
+                        states.photoPopupOpened = false;
+                        this.onSend(option.value);
+                    }
+                },
+                onUploadButtonClicked: function() {
+                    this.$refs.fileInput.click();
+                },
+                onPhotoUploadButtonClicked: function() {
+                    states.photoPopupOpened = true;
+                },
+                submitPhoto: function(){
+                    states.photoCoordinates = states.cropper.getData();
+                    states.photoFile["photoCoordinates"] = states.photoCoordinates;
+                    var _validFileExtensions = [".jpeg", ".jpg", ".png", ".gif"];
+                    var sFileName = states.photoFileName;
+                    console.log(sFileName);
+                    if (sFileName.length > 0) {
+                        var blnValid = false;
+                        for (var j = 0; j < _validFileExtensions.length; j++) {
+                            var sCurExtension = _validFileExtensions[j];
+                            if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                                blnValid = true;
+                                break;
+                            }
+                        }
+                        if (!blnValid) {
+                            alert("Sorry! Supported Formats are jpeg, jpg, png, gif, upto 3 MB");
+                        } else {
+                            if (states.photoFile.size > 3000000) {
+                                alert("Sorry! Supported Formats are jpeg, jpg, png, gif, upto 3 MB");
+
+                            } else {
+                                this.onSend(states.photoFile);
+                            }
+                        }
+                    }
+                },
+                submitFile: function() {
+                    var _validFileExtensions = [".doc", ".docx", ".rtf", ".pdf"];
+                    var sFileName = states.cvFile.name;
+                    if (sFileName.length > 0) {
+                        var blnValid = false;
+                        for (var j = 0; j < _validFileExtensions.length; j++) {
+                            var sCurExtension = _validFileExtensions[j];
+                            if (sFileName.substr(sFileName.length - sCurExtension.length, sCurExtension.length).toLowerCase() == sCurExtension.toLowerCase()) {
+                                blnValid = true;
+                                break;
+                            }
+                        }
+                        if (!blnValid) {
+                            alert("Sorry! Supported Formats are doc, docx, rtf, pdf, upto 2 MB");
+                        } else {
+                            if (states.cvFile.size > 2000000) {
+                                alert("Sorry! Supported Formats are doc, docx, rtf, pdf, upto 2 MB");
+
+                            } else {
+                                this.onSend(states.cvFile);
+                            }
+                        }
+                    }
+
+                },
+                onClosePopup: function() {
+                    history.back();
+                },
+                onAutocompleteClicked: function(value) {
+                    if (states.inputType.type == "autosuggest-multi") {
+                        states.message = states.message + " " + value + ",";
+                    } else {
+                        this.onSend(value);
+                    }
+                },
+                onAutocomplete: function(text) {
+                    var length = text.trim().length;
+                    if (length < 2 || (states.textLength && length < states.textLength)) {
+                        states.autosuggest = [];
+                        if (app.timer) {
+                            clearTimeout(app.timer);
+                        }
+                        states.textLength = length;
+                        return;
+                    }
+                    states.textLength = length;
+                    if (states.inputType.type == "autosuggest") {
+                        if (app.timer) {
+                            clearTimeout(app.timer);
+                        }
+                        app.timer = setTimeout(function() {
+                            var url = states.inputType.value.replace("{||}", text);
+
+                            axios.get(url)
+                                .then(function(response) {
+                            var apiResult = response.data;
+                             var tempList =[]
+                            for(var i =0; i<apiResult["d"].length;i++){
+                                tempList.push({"displayTextEn":apiResult["d"][i][1]+", "+apiResult["d"][i][2],"id":apiResult["d"][i][0]})
+                            }
+                            states.autosuggest = tempList;
+
+				})
+                                .catch(error);
+                        }, 500);
+                    }
+                },
+                onFocus: function() {
+                    setTimeout(function() {
+                        var divToScroll = document.querySelector(".page-content.messages-content");
+                        divToScroll.scrollTop = divToScroll.scrollHeight;
+                    }, 300);
+                },
+                onSend: function(text) {
+                    states.photoPopupOpened = false;
+                    var urlParams = new URLSearchParams(window.location.search);
+                    if (app.timer) {
+                        clearTimeout(app.timer);
+                    }
+                    if (typeof text != 'object') {
+                        if (text.trim().length === 0) return;
+                    }
+                    states.options = [];
+                    states.keyskills = [];
+                    states.autosuggest = [];
+
+                    payload["input"] = text;
+                    if (states.lastMessage) {
+                        states.lastMessage.avtar = "";
+                    }
+                    states.lastMessage = {
+                        name: "You",
+                        text: states.inputType && (states.inputType.type == "password" && text != "I made a mistake") ? new Array(text.length + 1).join("*") : (text.name ? text.name : text),
+                        type: "sent"
+                    };
+                    states.lastmessage = states.lastMessage;
+                    states.msgs.push(states.lastMessage);
+                    states.isReplying = true;
+                    var newPayload = {}
+                    newPayload["input"] = payload["input"];
+                    newPayload["appName"] = conversation;
+                    newPayload["domain"] = domain;
+                    newPayload["channel"] = "web"
+                    if (typeof text === 'object') {
+                        var data = new FormData();
+                        var blob = new Blob([JSON.stringify(newPayload)], {
+                            type: 'application/json'
+                        });
+                        data.append("document", blob);
+                        data.append("file", text);
+                        newPayload = data;
+                    }
+                    var headers = {
+                        withCredentials: true
+                    }
+                    axios.post('https://'+fnBaseUrl+'/botapi/v1/respond', newPayload, headers)
+                        .then(success)
+                        .catch(error);
+                    states.message = "";
+                },
+                avatarClick: function(msgType) {
+
+
+                    if (msgType.type == "sent") {
+                        var message = "I made a mistake";
+                        this.onSend(message);
+                    }
+                },
+                onRestartClick: function() {
+                        var message = "Restart";
+                        this.onSend(message);
+                                    },
+                onBackClick: function() {
+                    window.location.href = "https://www.naukri.com";
+                },
+                headerTitle: function() {
+                     if (conversation == "napp_1"){
+                        return "Register Your Complaints"
+                     }
+                     if (conversation == "app_1") {
+                        return "Registration"
+                    } else {
+                        return "Complete Your Profile"
+                    }
+                }
+
+
+            },
+            created() {
+                window.addEventListener('popstate', this.backHandler, false);
+                document.addEventListener("backbutton", this.backHandler, false);
+            },
+            beforeDestroy() {
+                document.removeEventListener("backbutton", this.backHandler);
+            },
+            framework7: {
+                root: '#app',
+                // material: true, // Remember to change css paths to ios/material theme!
+                material: Framework7.prototype.device.android ? true : false,
+
+            },
+        });
+
+            var headers = {
+                withCredentials: true
+            }
+            axios.post('https://'+fnBaseUrl+'/botapi/v1/respond', payload, headers)
+                .then(initSuccess)
+                .catch(error);
+            ub.track("niResmanView", {
+                actionType: "view",
+                sectionName: "chatScreen",
+                pageIndex: 1,
+               	chatId: getCookie("_t_ds"),
+                uniqueDid: getCookie("_t_ds")
+            });
+    }
+
+    // Wait until device is ready and then init the app
+    document.addEventListener('DOMContentLoaded', function() {
+        if (Framework7.prototype.device.android) {
+            Dom7('.view.navbar-through').removeClass('navbar-through').addClass('navbar-fixed');
+            Dom7('.view .navbar').prependTo('.view .page');
+        }
+        var getParams = function(url) {
+            var params = {};
+            var parser = new URL(url);
+            var query = parser.search.substring(1);
+            if (query) {
+                var vars = query.split('&');
+                for (var i = 0; i < vars.length; i++) {
+                    var pair = vars[i].split('=');
+                    params[pair[0]] = decodeURIComponent(pair[1]);
+                }
+            }
+            return params;
+        };
+
+
+        initVue(getParams(window.location.href));
+    }, false);
+})();

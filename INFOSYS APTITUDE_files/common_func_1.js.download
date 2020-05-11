@@ -1,0 +1,174 @@
+var commonfunc = function(){}
+commonfunc.getFrame = function (frameName, getDoc) {
+    getDoc = getDoc ? true : false;
+    var iframes = document.getElementsByTagName('iframe'), iframe;
+    for (i=0; i<iframes.length; ++i) {
+        if (iframes[i].name == frameName)
+            iframe = iframes[i];
+    }
+    if (! getDoc)
+        return iframe;
+    if (iframe.contentDocument != undefined) // FF, Opera
+        idoc = iframe.contentDocument;
+    else if (iframe.document != undefined) // IE
+        idoc = iframe.contentWindow.document;
+    else
+        idoc = null;
+    return idoc;
+}
+
+commonfunc.resizeIframe = function(iframe) {
+    iFrame = commonfunc.getFrame(iframe.name, true);
+    iframe.width = 0;
+    iframe.height = 0;
+
+    if(iFrame.body.scrollWidth >= 4){
+        iframe.width = iFrame.body.scrollWidth - 4 + "px";
+        iframe.style.width = iFrame.body.scrollWidth - 4 + "px";
+    }
+    iframe.height = iFrame.body.scrollHeight;
+    if(document.getElementById('id_wrapper_'+iframe.name) && iframe.height <= 20) {
+        document.getElementById('id_wrapper_'+iframe.name).style.display = "none";
+    }
+}
+
+commonfunc.txtBlur = function(ele, act, defaultVal){
+    if(typeof(ele)!='object')
+        ele = $n('#' + ele);
+
+    ele.val(ele.val().replace(/^\s+/,''));
+    ele.val(ele.val().replace(/\s+$/,''));
+
+    if (act == "b" && ele.val()=="") {
+        ele.val(defaultVal); 
+        ele.addClass("c666");
+    }
+    else if (act == "f" && ele.val() == defaultVal) {
+        ele.val(""); 
+        ele.removeClass("c666");
+    }
+}
+function redirectToPostingPage() {
+    if (!validateQuestion())
+        return !1;
+    var postQuestionUrl = "https://www.firstnaukri.com/freshersmnj/mynaukri.php/AskAndAnswer/questionPostLandingPage";
+    var a = (document.getElementById("questionText").value);
+    window.location = postQuestionUrl + "?questionText=" + escape(a)
+}
+
+function validateQuestion(){
+        var questionTxt = document.getElementById("questionText");
+        var error_question = document.getElementById("questionText_error");
+        var defaultText = 'Ask your career related question here';
+        error_question.style.display = "none";
+        var str = questionTxt.value.trim();
+        str = str.replace(/[(\n)\r\t\"\'\\]/g,' ');
+        str = str.replace(/[^\x20-\x7E]/g,'');
+        questionTxt.className = "tr";
+        var err = false;
+        var msg = '';
+        if (str == "" || str == defaultText){
+                msg = "'Question' is required";
+                err = true;
+        }
+        else if(str.length == '') {
+                msg = "Please enter the Question"
+                        err = true;
+        }
+        else if(str.length > 300) {
+                msg = "Please use a maximum of 300 characters for Question";
+                err = true;
+        }
+        else if(str.length<3) {
+                msg = "The Question must contain atleast 3 characters.";
+                err = true;
+        }
+        else if(!validateAtleastOneAlphaNum(str)) {
+                msg = "Please enter some alphanumeric characters also";
+                err = true;
+        }
+        else {
+                str = removeNewLineCharacters(str) ;
+                str = str.toLowerCase();
+                var strArray = str.split(" ");
+                for(var strArrayCount = 0; strArrayCount < strArray.length; strArrayCount++) {
+                        if((strArray[strArrayCount].length > 32) && (strArray[strArrayCount].search(/(http|https)?(:\/\/)/) == -1)) {
+                                msg = "Question cannot contain any word exceeding 32 characters.";
+                                err = true;
+                        }
+                }
+	}
+        if(err) {
+                questionTxt.focus();
+                error_question.style.display = "";
+                questionTxt.className = "tr valerr";
+                error_question.innerHTML = msg;
+                error_question.value = msg;
+                return false;
+        }
+        else {
+                return true;
+        }
+}
+function validateAtleastOneAlphaNum(str) {
+        var regexp = /[a-zA-Z0-9]+/;
+        if(regexp.test(str)) {
+                return true;
+        }
+        return false;
+}
+function removeNewLineCharacters(str) {
+        if (str.indexOf('\r\n')!=-1)
+                str = str.replace ( /\r\n/g, ' ' );
+        else if (str.indexOf('\r')!=-1)
+                str = str.replace ( /\r/g, ' ' );
+        else if (str.indexOf('\n')!=-1)
+                str = str.replace ( /\n/g, ' ' );
+        return str;
+}
+
+$( window ).load(function() {
+
+$(".hambicon").on("click",function(event){
+
+   var targetNode = $(this).parents(".mbHdr").find(".category_heading");
+
+   targetNode.toggle();
+
+});
+
+$('body').on('click', function() {
+
+    if(event.target.id=="s"){
+
+        return;
+
+    }
+
+    var targetForm = $(".mbHdr .widget_search");
+
+        targetForm.removeClass("borderAdded");
+
+});
+
+$(".mbHdr #searchsubmit").on("click",function(event){
+
+    event.preventDefault();
+
+    event.stopPropagation();
+
+    var targetForm = $(".mbHdr .widget_search");
+
+    if(targetForm.hasClass("borderAdded")){
+
+        targetForm.find("form").submit();
+
+    }else{
+
+        targetForm.addClass("borderAdded");
+
+    }
+
+});
+
+});

@@ -1,0 +1,104 @@
+.cat_head{
+	width: 100%;
+	padding-bottom: 12px;
+	border-bottom: 1px solid #e5e5e5;
+}
+
+.cat_headTxt{
+	float: left;
+	color: #d3710c;
+	font-weight: bold;
+	font-size: 16px;
+}
+
+.cat_viewAll{
+	float: right;
+	font-size: 11px;
+	color: #0079d0;
+	line-height: 20px;
+}
+
+.cat_viewAll > a{
+	text-decoration: none;
+}
+
+ul.catTupple > li{
+  display: inline-block;
+  width: 49%;
+  vertical-align: top;
+  margin-top: 25px;
+
+}
+
+ul.catTupple a{
+	text-decoration: none;
+}
+
+.catTuppleR {
+    display: inline-block;
+    vertical-align: top; 
+}
+
+.catImg{
+    padding-right: 20px;
+    height: 50px;
+    width: 50px;
+    display: inline-block;
+
+}
+
+.catTuppleHeading{
+  font-size: 13px;
+  margin-bottom: 3px;
+  color: #0079d0;
+  display: block;
+
+}
+
+.catTuppleCount{
+  color: #424242;
+  font-size: 12px;
+}
+
+.recentPostWrap{
+  margin-top: 25px;
+}
+
+.recentPostListWrap{
+	margin-top: 20px;
+}
+
+.recentPostListWrap > li{
+   margin-top: 7px;
+}
+
+.recentPostListWrap > li > a{
+	font-size: 13px;
+	color: #0079d0;
+	text-decoration: none;
+	background: url("./images/arrow-next.png") no-repeat scroll 1px rgba(0, 0, 0, 0);
+    	clear: both;
+    	color: #0079d0;
+    	display: inline-block;
+	padding-left:15px;
+}
+
+.recentPostWrap > h4:first-child{
+   	font-size: 13px;
+   	color: #424242;
+}
+.balckColor{
+	color: #424242 !important;
+}
+.cat_wrap{
+ margin: 0 0 60px 0;
+}
+.catTupple{
+ margin: 0 0 25px 0;
+}
+
+.widget .widget-inside .category-options .postform { width: 100%; }
+        .widget .widget-inside .category-options p { margin: 3px 0; }
+        .widget .widget-inside .category-options hr { margin: 20px 0 10px; }
+        .widget .widget-inside .category-options h4 { margin-bottom: 10px; }
+
